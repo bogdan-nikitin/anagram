@@ -3,8 +3,10 @@ from collections import defaultdict
 import bitstring
 import huffman
 from anargram import CYRILLIC_LOWER_LETTERS, LENGTH, get_anagrams
+import pickle
 
 
+ANAGRAM_FILE = 'anagrams.pickle'
 RUSSIAN_WORDS_URL = 'https://raw.githubusercontent.com/caffidev/russianwords/main/utf-8/words.txt'
 
 
@@ -41,8 +43,18 @@ def encode_huffman(words):
     return huffman.encode(s, weights)
 
 
+def write_anagrams():
+    with open(ANAGRAM_FILE, mode='wb') as file:
+        pickle.dump(get_anagrams(get_words()), file)
+
+
+def read_anagrams():
+    with open(ANAGRAM_FILE, mode='rb') as file:
+        return pickle.load(file)
+
+
 if __name__ == '__main__':
-    print(get_anagrams(get_words()))
+    anagrams = read_anagrams()
     # b = get_grouped()
     # print(len(b))
     # print(len(zlib.compress(b, level=9)))
