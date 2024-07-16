@@ -1,64 +1,56 @@
-import requests
-from collections import defaultdict
-import bitstring
-import huffman
-from anargram import CYRILLIC_LOWER_LETTERS, LENGTH, get_anagrams
-import pickle
+import logging
+import sys
+from os import getenv
+
+from aiohttp.web import run_app
+from aiohttp.web_app import Application
+from handlers import my_router
+from routes import check_data_handler, demo_handler, send_message_handler
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums.parse_mode import ParseMode
+from aiogram.types import MenuButtonWebApp, WebAppInfo
+from aiogram.webhook.aiohttp_server import (SimpleRequestHandler,
+                                            setup_application)
+
+TOKEN = getenv("BOT_TOKEN")
+
+APP_BASE_URL = getenv("APP_BASE_URL")
 
 
-ANAGRAM_FILE = 'anagrams.pickle'
-RUSSIAN_WORDS_URL = 'https://raw.githubusercontent.com/caffidev/russianwords/main/utf-8/words.txt'
+async def on_startup(bot: Bot, base_url: str):
+    await bot.set_webhook(f"{base_url}/webhook")
+    await bot.set_chat_menu_button(
+        menu_button=MenuButtonWebApp(text="Open Menu",
+                                     web_app=WebAppInfo(url=f"{base_url}/demo"))
+    )
 
 
-def get_words():
-    response = requests.get(RUSSIAN_WORDS_URL)
-    text = response.content.decode('utf-8')
+def main():
+    bot = Bot(token=TOKEN,
+              default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dispatcher = Dispatcher()
+    dispatcher["base_url"] = APP_BASE_URL
+    dispatcher.startup.register(on_startup)
 
-    words = set(filter(
-        lambda word: len(word) <= LENGTH and
-                     all(c in CYRILLIC_LOWER_LETTERS for c in word),
-        text.split('\n')))
-    return words
+    dispatcher.include_router(my_router)
 
+    app = Application()
+    app["bot"] = bot
 
-def _encode_fixed(s):
-    alphabet = ''.join(CYRILLIC_LOWER_LETTERS) + ' '
-    arr = bitstring.BitArray()
-    power = len(alphabet).bit_length()
-    print(power)
-    for c in s:
-        arr.append(bitstring.Bits(uint=alphabet.index(c), length=power))
-    return arr.tobytes()
+    app.router.add_get("/demo", demo_handler)
+    app.router.add_post("/demo/checkData", check_data_handler)
+    app.router.add_post("/demo/sendMessage", send_message_handler)
+    SimpleRequestHandler(
+        dispatcher=dispatcher,
+        bot=bot,
+    ).register(app, path="/webhook")
+    setup_application(app, dispatcher, bot=bot)
 
-
-def encode_fixed(words):
-    return _encode_fixed(' '.join(words))
-
-
-def encode_huffman(words):
-    s = ' '.join(words)
-    weights = defaultdict(lambda: 0)
-    for c in s:
-        weights[c] += 1
-    return huffman.encode(s, weights)
+    run_app(app, host="127.0.0.1", port=8081)
 
 
-def write_anagrams():
-    with open(ANAGRAM_FILE, mode='wb') as file:
-        pickle.dump(get_anagrams(get_words()), file)
-
-
-def read_anagrams():
-    with open(ANAGRAM_FILE, mode='rb') as file:
-        return pickle.load(file)
-
-
-if __name__ == '__main__':
-    anagrams = read_anagrams()
-    # b = get_grouped()
-    # print(len(b))
-    # print(len(zlib.compress(b, level=9)))
-
-    # print(zlib.compress(123))
-    # print(sorted(CYRILLIC_LOWER_LETTERS))
-    # print(list(sub_keys('aaabbccc')))
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    main()
