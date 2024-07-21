@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from aiohttp.web_fileresponse import FileResponse
-from aiohttp.web_request import Request
-from aiohttp.web_response import json_response
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi import Form, Request, APIRouter
+from typing import Annotated
+
 
 from aiogram import Bot
 from aiogram.types import (
@@ -12,38 +13,52 @@ from aiogram.types import (
     InputTextMessageContent,
     WebAppInfo,
 )
-from aiogram.utils.web_app import check_webapp_signature, safe_parse_webapp_init_data
+from aiogram.utils.web_app import (check_webapp_signature,
+                                   safe_parse_webapp_init_data)
 
 
-async def demo_handler(request: Request):
+router = APIRouter()
+
+
+@router.get("/demo")
+async def demo_handler():
     return FileResponse(Path(__file__).parent.resolve() / "demo.html")
 
 
-async def check_data_handler(request: Request):
-    bot: Bot = request.app["bot"]
+@router.post("/demo/checkData")
+async def check_data_handler(
+        auth: Annotated[str, Form(alias="_auth")],
+        request: Request):
+    bot: Bot = request.app.state.bot
 
-    data = await request.post()
-    if check_webapp_signature(bot.token, data["_auth"]):
-        return json_response({"ok": True})
-    return json_response({"ok": False, "err": "Unauthorized"}, status=401)
+    if check_webapp_signature(bot.token, auth):
+        return {"ok": True}
+    return JSONResponse(content={"ok": False, "err": "Unauthorized"},
+                        status_code=401)
 
 
-async def send_message_handler(request: Request):
-    bot: Bot = request.app["bot"]
-    data = await request.post()
+@router.post("/demo/sendMessage")
+async def send_message_handler(auth: Annotated[str, Form(alias="_auth")],
+                               with_webview: Annotated[str, Form()],
+                               request: Request):
+    bot: Bot = request.app.state.bot
     try:
-        web_app_init_data = safe_parse_webapp_init_data(token=bot.token, init_data=data["_auth"])
+        web_app_init_data = safe_parse_webapp_init_data(token=bot.token,
+                                                        init_data=auth)
     except ValueError:
-        return json_response({"ok": False, "err": "Unauthorized"}, status=401)
+        return JSONResponse(content={"ok": False, "err": "Unauthorized"},
+                            status_code=401)
 
     reply_markup = None
-    if data["with_webview"] == "1":
+    if with_webview == "1":
         reply_markup = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
                         text="Open",
-                        web_app=WebAppInfo(url=str(request.url.with_scheme("https"))),
+                        web_app=WebAppInfo(url=str(
+                            request.url.replace(scheme="https")
+                        )),
                     )
                 ]
             ]
@@ -60,4 +75,4 @@ async def send_message_handler(request: Request):
             reply_markup=reply_markup,
         ),
     )
-    return json_response({"ok": True})
+    return {"ok": True}
