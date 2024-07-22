@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 
 import logging
@@ -21,12 +23,18 @@ TOKEN = getenv('BOT_TOKEN')
 APP_BASE_URL = getenv("APP_BASE_URL")
 
 
-async def on_startup(bot: Bot, base_url: str):
-    await bot.set_webhook(f"{base_url}/webhook")
-    await bot.set_chat_menu_button(
-        menu_button=MenuButtonWebApp(text="Open Menu",
-                                     web_app=WebAppInfo(url=f"{base_url}/demo"))
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await bot.set_webhook(
+        url=f"{APP_BASE_URL}/webhook",
+        allowed_updates=dispatcher.resolve_used_update_types(),
+        drop_pending_updates=True
     )
+    await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
+        text="Open Menu", web_app=WebAppInfo(url=f"{APP_BASE_URL}/demo"))
+    )
+    yield
+    await bot.delete_webhook()
 
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -38,9 +46,8 @@ bot = Bot(token=TOKEN,
           session=session)
 dispatcher = Dispatcher()
 dispatcher["base_url"] = APP_BASE_URL
-dispatcher.startup.register(on_startup)
 dispatcher.include_router(my_router)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.state.bot = bot
 app.include_router(router)
 

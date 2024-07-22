@@ -25,7 +25,6 @@ def _encode_fixed(s):
     alphabet = ''.join(CYRILLIC_LOWER_LETTERS) + ' '
     arr = bitstring.BitArray()
     power = len(alphabet).bit_length()
-    print(power)
     for c in s:
         arr.append(bitstring.Bits(uint=alphabet.index(c), length=power))
     return arr.tobytes()
