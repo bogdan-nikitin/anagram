@@ -27,9 +27,7 @@ APP_BASE_URL = getenv("APP_BASE_URL")
 
 async def create_tables(conn: asyncpg.Connection):
     await conn.execute('''
-    DROP TABLE IF EXISTS games
-    ''')
-    await conn.execute('''
+    DROP TABLE IF EXISTS games;
     CREATE TABLE IF NOT EXISTS games(
         id serial PRIMARY KEY
     )
