@@ -29,20 +29,22 @@ async def command_start(message: Message, bot: Bot, base_url: str):
 @my_router.inline_query()
 async def inline_query_handler(inline_query: InlineQuery):
     return await inline_query.answer([InlineQueryResultArticle(
-        title="Example3",
-        id="example1",
-        description="Description",
+        title="Сыграть в анаграммы",
+        id="play",
+        description="Отправить приглашение",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Test1",
-                        callback_data="dummy"
+                        text="Загрузка...",
+                        callback_data="LOADING"
                     )
                 ]
             ]
         ),
-        input_message_content=InputTextMessageContent(message_text="Test")
+        input_message_content=InputTextMessageContent(
+            message_text="Загрузка..."
+        )
     )], cache_time=0)
 
 
@@ -51,33 +53,22 @@ async def chosen_inline_result_handler(
         chosen_inline_result: ChosenInlineResult,
         pool: asyncpg.Pool
 ):
-    # await chosen_inline_result.bot.edit_message_text(
-    #     text="Changed",
-    #     inline_message_id=chosen_inline_result.inline_message_id,
-    #     # reply_markup=InlineKeyboardMarkup(
-    #     #     inline_keyboard=[
-    #     #         [
-    #     #             InlineKeyboardButton(
-    #     #                 text="Test2",
-    #     #                 web_app=WebAppInfo(url=f"{base_url}/demo")
-    #     #             )
-    #     #         ]
-    #     #     ]
-    #     # ),
-    # )
-    await chosen_inline_result.bot.edit_message_reply_markup(
-        inline_message_id=chosen_inline_result.inline_message_id,
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="Test2",
-                        url=f"https://t.me/play_anagram_bot/anagram",
-                    )
-                ]
-            ]
-        ),
-    )
+    async with pool.acquire() as connection:
+        connection: asyncpg.Connection
+        id_ = (await connection.fetchrow(
+            'INSERT INTO games DEFAULT VALUES RETURNING id'
+        ))['id']
+        await chosen_inline_result.bot.edit_message_text(
+            text=f"Пользователь @{chosen_inline_result.from_user.username} "
+                 "предлагает сыграть в анаграммы",
+            inline_message_id=chosen_inline_result.inline_message_id,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(
+                    text="Играть",
+                    url=f"https://t.me/play_anagram_bot/anagram?startapp={id_}",
+                )]]
+            ),
+        )
 
 
 @my_router.message(Command("webview"))
