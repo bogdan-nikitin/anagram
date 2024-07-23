@@ -1,3 +1,5 @@
+import asyncpg
+
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
@@ -46,7 +48,8 @@ async def inline_query_handler(inline_query: InlineQuery):
 
 @my_router.chosen_inline_result()
 async def chosen_inline_result_handler(
-        chosen_inline_result: ChosenInlineResult, base_url: str
+        chosen_inline_result: ChosenInlineResult,
+        pool: asyncpg.Pool
 ):
     # await chosen_inline_result.bot.edit_message_text(
     #     text="Changed",
@@ -70,7 +73,6 @@ async def chosen_inline_result_handler(
                     InlineKeyboardButton(
                         text="Test2",
                         url=f"https://t.me/play_anagram_bot/anagram",
-                        # web_app=WebAppInfo(url=f"{base_url}/demo")
                     )
                 ]
             ]

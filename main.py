@@ -6,6 +6,8 @@ import logging
 import sys
 from os import getenv
 
+import asyncpg
+
 from fastapi import FastAPI, Request
 from handlers import my_router
 from routes import router
@@ -23,6 +25,17 @@ TOKEN = getenv('BOT_TOKEN')
 APP_BASE_URL = getenv("APP_BASE_URL")
 
 
+async def create_tables(conn: asyncpg.Connection):
+    await conn.execute('''
+    DROP TABLE IF EXISTS games
+    ''')
+    await conn.execute('''
+    CREATE TABLE IF NOT EXISTS games(
+        id serial PRIMARY KEY
+    )
+    ''')
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await bot.set_webhook(
@@ -33,8 +46,15 @@ async def lifespan(app: FastAPI):
     await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
         text="Open Menu", web_app=WebAppInfo(url=f"{APP_BASE_URL}/demo"))
     )
-    yield
-    await bot.delete_webhook()
+    async with asyncpg.create_pool(
+            'postgresql://postgres@localhost/anagram'
+    ) as pool:
+        app.state.pool = pool
+        dispatcher['pool'] = pool
+        async with pool.acquire() as connection:
+            await create_tables(connection)
+        yield
+        await bot.delete_webhook()
 
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
