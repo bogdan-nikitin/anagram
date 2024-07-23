@@ -20,7 +20,7 @@ from aiogram.utils.web_app import (check_webapp_signature,
 router = APIRouter()
 
 
-@router.get("/demo")
+@router.get("/app")
 async def demo_handler():
     return FileResponse(Path(__file__).parent.resolve() / "demo.html")
 
