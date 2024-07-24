@@ -55,9 +55,9 @@ async def chosen_inline_result_handler(
 ):
     async with pool.acquire() as connection:
         connection: asyncpg.Connection
-        id_ = (await connection.fetchrow(
-            'INSERT INTO games DEFAULT VALUES RETURNING id'
-        ))['id']
+        public_id = (await connection.fetchrow(
+            'INSERT INTO games DEFAULT VALUES RETURNING public_id'
+        ))['public_id'].hex
         await chosen_inline_result.bot.edit_message_text(
             text=f"Пользователь @{chosen_inline_result.from_user.username} "
                  "предлагает сыграть в анаграммы",
@@ -65,7 +65,8 @@ async def chosen_inline_result_handler(
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[[InlineKeyboardButton(
                     text="Играть",
-                    url=f"https://t.me/play_anagram_bot/anagram?startapp={id_}",
+                    url="https://t.me/play_anagram_bot/anagram?"
+                        f"startapp={public_id}",
                 )]]
             ),
         )

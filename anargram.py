@@ -5,6 +5,7 @@ from iterator_util import consume
 
 CYRILLIC_LOWER_LETTERS = sorted('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
 LENGTH = 6
+MIN_COUNT = 20
 
 
 def get_key(word):
@@ -45,7 +46,12 @@ def get_used(anagrams):
 
 
 def calculate_histogram(anagrams):
-    hist = {}
+    hist: dict = {}
     for k, v in anagrams:
         hist[len(v)] = hist.get(len(v), 0) + 1
     return hist
+
+
+def filter_anagrams(anagrams):
+    return {k: v for k, v in anagrams.items() if len(v) >= MIN_COUNT}
+

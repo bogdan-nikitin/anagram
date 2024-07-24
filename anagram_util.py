@@ -1,13 +1,14 @@
 import requests
-from collections import defaultdict
 import bitstring
 import huffman
-from anargram import CYRILLIC_LOWER_LETTERS, LENGTH, get_anagrams
+from anargram import *
 import pickle
 
 
 ANAGRAM_FILE = 'anagrams.pickle'
+MINI_ANAGRAM_FILE = 'mini_anagrams.pickle'
 RUSSIAN_WORDS_URL = 'https://raw.githubusercontent.com/caffidev/russianwords/main/utf-8/words.txt'
+MINI_SIZE = 10
 
 
 def get_words():
@@ -42,18 +43,29 @@ def encode_huffman(words):
     return huffman.encode(s, weights)
 
 
-def write_anagrams():
-    with open(ANAGRAM_FILE, mode='wb') as file:
-        pickle.dump(get_anagrams(get_words()), file)
+def get_filtered_anagrams():
+    return filter_anagrams(get_anagrams(get_words()))
 
 
-def read_anagrams():
-    with open(ANAGRAM_FILE, mode='rb') as file:
+def write_anagrams(anagrams=None, filename=ANAGRAM_FILE):
+    anagrams = anagrams or get_filtered_anagrams()
+    with open(filename, mode='wb') as file:
+        pickle.dump(anagrams, file)
+
+
+def read_anagrams(filename=ANAGRAM_FILE):
+    with open(filename, mode='rb') as file:
         return pickle.load(file)
 
 
+def get_mini_anagrams():
+    return dict(itertools.islice(get_filtered_anagrams().items(), MINI_SIZE))
+
+
 if __name__ == '__main__':
-    anagrams = read_anagrams()
+    # write_anagrams(get_mini_anagrams(), MINI_ANAGRAM_FILE)
+    # anagrams = get_anagrams(get_words())
+    anagrams = read_anagrams(MINI_ANAGRAM_FILE)
     # b = get_grouped()
     # print(len(b))
     # print(len(zlib.compress(b, level=9)))
