@@ -30,6 +30,9 @@ class Anagrams:
     def __getitem__(self, item) -> tuple[str]:
         return self._anagrams[item]
 
+    def __len__(self):
+        return len(self.ordered)
+
 
 def get_words():
     response = requests.get(RUSSIAN_WORDS_URL)
@@ -83,7 +86,9 @@ def get_mini_anagrams():
 
 
 if __name__ == '__main__':
-    Anagrams(get_mini_anagrams()).write(MINI_ANAGRAM_FILE)
+    # print(len(get_filtered_anagrams()))
+    print(Anagrams.read(MINI_ANAGRAM_FILE).ordered)
+    # Anagrams(get_mini_anagrams()).write(MINI_ANAGRAM_FILE)
     # write_anagrams(get_mini_anagrams(), MINI_ANAGRAM_FILE)
     # anagrams = get_anagrams(get_words())
     # anagrams = read_anagrams(MINI_ANAGRAM_FILE)

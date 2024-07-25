@@ -1,6 +1,8 @@
 import asyncpg
+import random
 
 from aiogram import Bot, F, Router
+from anagram_util import Anagrams
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
@@ -51,12 +53,14 @@ async def inline_query_handler(inline_query: InlineQuery):
 @my_router.chosen_inline_result()
 async def chosen_inline_result_handler(
         chosen_inline_result: ChosenInlineResult,
-        pool: asyncpg.Pool
+        pool: asyncpg.Pool,
+        anagrams: Anagrams
 ):
     async with pool.acquire() as connection:
         connection: asyncpg.Connection
         public_id = (await connection.fetchrow(
-            'INSERT INTO games DEFAULT VALUES RETURNING public_id'
+            'INSERT INTO games(anagram_num) VALUES ($1) RETURNING public_id',
+            random.randrange(len(anagrams))
         ))['public_id'].hex
         await chosen_inline_result.bot.edit_message_text(
             text=f"Пользователь @{chosen_inline_result.from_user.username} "
@@ -66,8 +70,7 @@ async def chosen_inline_result_handler(
                 inline_keyboard=[[InlineKeyboardButton(
                     text="Играть",
                     url="https://t.me/play_anagram_bot/anagram?"
-                        f"startapp={public_id}",
-                )]]
+                        f"startapp={public_id}")]]
             ),
         )
 
