@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from anagram_util import read_anagrams
+from anagram_util import Anagrams
 from settings import settings
 
 import logging
@@ -63,7 +63,7 @@ bot = Bot(token=settings.BOT_TOKEN.get_secret_value(),
           session=session)
 dispatcher = Dispatcher()
 dispatcher['base_url'] = settings.APP_BASE_URL
-anagrams = read_anagrams(settings.ANAGRAM_FILE)
+anagrams = Anagrams.read(settings.ANAGRAM_FILE)
 dispatcher['anagrams'] = anagrams
 dispatcher.include_router(my_router)
 app = FastAPI(lifespan=lifespan)

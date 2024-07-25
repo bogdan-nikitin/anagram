@@ -32,7 +32,7 @@ def get_anagrams(words):
     for seq in itertools.combinations_with_replacement(
             CYRILLIC_LOWER_LETTERS, LENGTH):
         key = get_key(seq)
-        anagrams[key] = list(itertools.chain.from_iterable(
+        anagrams[key] = tuple(itertools.chain.from_iterable(
             exact_anagrams[k] for k in sub_keys(key)
         ))
     return anagrams

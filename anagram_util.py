@@ -11,6 +11,26 @@ RUSSIAN_WORDS_URL = 'https://raw.githubusercontent.com/caffidev/russianwords/mai
 MINI_SIZE = 10
 
 
+class Anagrams:
+    def __init__(self, anagrams: dict[str, tuple[str]]):
+        self._anagrams = anagrams
+        self._ordered = tuple(sorted(anagrams))
+
+    def write(self, filename):
+        write_anagrams(self._anagrams, filename)
+
+    @staticmethod
+    def read(filename: str) -> 'Anagrams':
+        return Anagrams(read_anagrams(filename))
+
+    @property
+    def ordered(self) -> tuple[str]:
+        return self._ordered
+
+    def __getitem__(self, item) -> tuple[str]:
+        return self._anagrams[item]
+
+
 def get_words():
     response = requests.get(RUSSIAN_WORDS_URL)
     text = response.content.decode('utf-8')
@@ -53,7 +73,7 @@ def write_anagrams(anagrams=None, filename=ANAGRAM_FILE):
         pickle.dump(anagrams, file)
 
 
-def read_anagrams(filename=ANAGRAM_FILE):
+def read_anagrams(filename=ANAGRAM_FILE) -> dict[str, tuple[str]]:
     with open(filename, mode='rb') as file:
         return pickle.load(file)
 
@@ -63,9 +83,10 @@ def get_mini_anagrams():
 
 
 if __name__ == '__main__':
+    Anagrams(get_mini_anagrams()).write(MINI_ANAGRAM_FILE)
     # write_anagrams(get_mini_anagrams(), MINI_ANAGRAM_FILE)
     # anagrams = get_anagrams(get_words())
-    anagrams = read_anagrams(MINI_ANAGRAM_FILE)
+    # anagrams = read_anagrams(MINI_ANAGRAM_FILE)
     # b = get_grouped()
     # print(len(b))
     # print(len(zlib.compress(b, level=9)))
