@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
         drop_pending_updates=True
     )
     await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
-        text="Open Menu", web_app=WebAppInfo(url=f"{APP_BASE_URL}/demo"))
+        text="Open Menu", web_app=WebAppInfo(url=f"{APP_BASE_URL}/app"))
     )
     async with asyncpg.create_pool(
             'postgresql://postgres@localhost/anagram'

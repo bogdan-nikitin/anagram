@@ -57,7 +57,7 @@ async def send_message_handler(auth: Annotated[str, Form(alias="_auth")],
                     InlineKeyboardButton(
                         text="Open",
                         web_app=WebAppInfo(url=str(
-                            request.url.replace(scheme="https")
+                            request.url.replace(scheme='https', path='app')
                         )),
                     )
                 ]
