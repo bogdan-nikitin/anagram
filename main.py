@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
+from anagram_util import read_anagrams
+from settings import settings
 
 import logging
 import sys
-from os import getenv
 
 import asyncpg
 
@@ -20,10 +21,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 
 PYTHONANYWHERE = False
 
-TOKEN = getenv('BOT_TOKEN')
-
-APP_BASE_URL = getenv("APP_BASE_URL")
-
 
 async def create_tables(conn: asyncpg.Connection):
     await conn.execute('''
@@ -38,15 +35,16 @@ async def create_tables(conn: asyncpg.Connection):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await bot.set_webhook(
-        url=f"{APP_BASE_URL}/webhook",
+        url=f"{settings.APP_BASE_URL}/webhook",
         allowed_updates=dispatcher.resolve_used_update_types(),
         drop_pending_updates=True
     )
     await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
-        text="Open Menu", web_app=WebAppInfo(url=f"{APP_BASE_URL}/app"))
+        text="Open Menu", web_app=WebAppInfo(url=f"{settings.APP_BASE_URL}/app"))
     )
     async with asyncpg.create_pool(
-            'postgresql://postgres@localhost/anagram'
+            'postgresql://postgres@localhost/anagram',
+            password=settings.PGPASSWORD.get_secret_value()
     ) as pool:
         app.state.pool = pool
         dispatcher['pool'] = pool
@@ -60,11 +58,13 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 session = AiohttpSession(
     proxy='http://proxy.server:3128'
 ) if PYTHONANYWHERE else None
-bot = Bot(token=TOKEN,
+bot = Bot(token=settings.BOT_TOKEN.get_secret_value(),
           default=DefaultBotProperties(parse_mode=ParseMode.HTML),
           session=session)
 dispatcher = Dispatcher()
-dispatcher["base_url"] = APP_BASE_URL
+dispatcher['base_url'] = settings.APP_BASE_URL
+anagrams = read_anagrams(settings.ANAGRAM_FILE)
+dispatcher['anagrams'] = anagrams
 dispatcher.include_router(my_router)
 app = FastAPI(lifespan=lifespan)
 app.state.bot = bot
