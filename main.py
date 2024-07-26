@@ -29,7 +29,12 @@ async def create_tables(conn: asyncpg.Connection):
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         public_id uuid DEFAULT gen_random_uuid(),
         anagram_num smallint
-    )
+    );
+    CREATE TABLE IF NOT EXISTS moves(
+        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        game_id bigint REFERENCES games(id),
+        used_id bigint NOT NULL
+    );
     ''')
 
 

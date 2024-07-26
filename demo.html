@@ -323,7 +323,7 @@
         $('#webview_data_status').show();
         $.ajax('/demo/checkData', {
             type: 'POST',
-            data: {_auth: initData},
+            data: {init_data: initData},
             dataType: 'json',
             success: function (result) {
                 if (result.ok) {

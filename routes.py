@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import asyncpg
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi import Form, Request, APIRouter
 from typing import Annotated
@@ -21,8 +22,31 @@ router = APIRouter()
 
 
 @router.get("/app")
-async def demo_handler():
+async def app_handler():
     return FileResponse(Path(__file__).parent.resolve() / "demo.html")
+
+
+@router.post('/app/prepareGame')
+async def prepare_game_handler(init_data: Annotated[str, Form()],
+                               request: Request):
+    bot: Bot = request.app.state.bot
+    try:
+        web_app_init_data = safe_parse_webapp_init_data(
+            token=bot.token, init_data=init_data
+        )
+    except ValueError:
+        return JSONResponse(content={"ok": False, "err": "Unauthorized"},
+                            status_code=401)
+    async with request.app.state.acquire() as connection:
+        connection: asyncpg.Connection
+        result = await connection.fetchrow(
+            'SELECT COUNT(*) FROM moves '
+            'WHERE user_id = $1 AND public_id = $2',
+            web_app_init_data.user.id,
+            web_app_init_data.start_param
+        )
+        print(result)
+    return {"ok": True}
 
 
 @router.post("/demo/checkData")
