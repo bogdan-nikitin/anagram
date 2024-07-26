@@ -24,6 +24,7 @@ PYTHONANYWHERE = False
 
 async def create_tables(conn: asyncpg.Connection):
     await conn.execute('''
+    DROP TABLE IF EXISTS moves;
     DROP TABLE IF EXISTS games;
     CREATE TABLE IF NOT EXISTS games(
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -33,7 +34,7 @@ async def create_tables(conn: asyncpg.Connection):
     CREATE TABLE IF NOT EXISTS moves(
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         game_id bigint REFERENCES games(id),
-        used_id bigint NOT NULL
+        user_id bigint NOT NULL
     );
     ''')
 

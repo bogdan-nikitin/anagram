@@ -2,7 +2,7 @@ from pathlib import Path
 
 import asyncpg
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi import Form, Request, APIRouter
+from fastapi import Form, Request, APIRouter, Depends, HTTPException
 from typing import Annotated
 
 
@@ -15,7 +15,22 @@ from aiogram.types import (
     WebAppInfo,
 )
 from aiogram.utils.web_app import (check_webapp_signature,
-                                   safe_parse_webapp_init_data)
+                                   safe_parse_webapp_init_data,
+                                   WebAppInitData)
+
+
+async def auth(init_data: Annotated[str, Form()],
+               request: Request) -> WebAppInitData:
+    try:
+        return safe_parse_webapp_init_data(
+            token=request.app.state.bot.token, init_data=init_data
+        )
+    except ValueError:
+        raise HTTPException(content={"ok": False, "err": "Unauthorized"},
+                            status_code=401)
+
+
+Auth = Annotated[WebAppInitData, Depends(auth)]
 
 
 router = APIRouter()
@@ -26,30 +41,24 @@ async def app_handler():
     return FileResponse(Path(__file__).parent.resolve() / "demo.html")
 
 
-@router.post('/app/prepareGame')
-async def prepare_game_handler(init_data: Annotated[str, Form()],
+# @router.post('/app/prepareGame')
+@router.post("/demo/checkData")
+async def prepare_game_handler(web_app_init_data: Auth,
                                request: Request):
-    bot: Bot = request.app.state.bot
-    try:
-        web_app_init_data = safe_parse_webapp_init_data(
-            token=bot.token, init_data=init_data
-        )
-    except ValueError:
-        return JSONResponse(content={"ok": False, "err": "Unauthorized"},
-                            status_code=401)
-    async with request.app.state.acquire() as connection:
+    async with request.app.state.pool.acquire() as connection:
         connection: asyncpg.Connection
-        result = await connection.fetchrow(
-            'SELECT COUNT(*) FROM moves '
-            'WHERE user_id = $1 AND public_id = $2',
+        is_moved = (await connection.fetchrow(
+            '''SELECT EXISTS (SELECT * FROM moves 
+            WHERE user_id = $1 AND game_id = 
+            (SELECT id FROM games WHERE public_id = $2))''',
             web_app_init_data.user.id,
             web_app_init_data.start_param
-        )
-        print(result)
+        ))['exists']
+        # TODO
     return {"ok": True}
 
 
-@router.post("/demo/checkData")
+# @router.post("/demo/checkData")
 async def check_data_handler(
         auth: Annotated[str, Form(alias="_auth")],
         request: Request):
