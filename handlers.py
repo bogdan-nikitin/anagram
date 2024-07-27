@@ -59,8 +59,9 @@ async def chosen_inline_result_handler(
     async with pool.acquire() as connection:
         connection: asyncpg.Connection
         public_id = (await connection.fetchrow(
-            'INSERT INTO games(anagram_num) VALUES ($1) RETURNING public_id',
-            random.randrange(len(anagrams))
+            'INSERT INTO games(anagram_num, sender_id) '
+            'VALUES ($1, $2) RETURNING public_id',
+            random.randrange(len(anagrams)), chosen_inline_result.from_user.id
         ))['public_id'].hex
         await chosen_inline_result.bot.edit_message_text(
             text=f"Пользователь @{chosen_inline_result.from_user.username} "
