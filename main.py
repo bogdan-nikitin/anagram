@@ -34,7 +34,8 @@ async def create_tables(conn: asyncpg.Connection):
     CREATE TABLE IF NOT EXISTS moves(
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         game_id bigint REFERENCES games(id),
-        user_id bigint NOT NULL
+        user_id bigint NOT NULL,
+        answer_mask bigint NOT NULL
     );
     ''')
 
