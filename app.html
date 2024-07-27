@@ -176,8 +176,8 @@
 </head>
 <body style="visibility: hidden;">
 <section>
-    <button id="main_btn" onclick="sendMessage('');">Send «Hello, World!»</button>
-    <button id="with_webview_btn" onclick="sendMessage('', true);">
+    <!-- <button id="main_btn" onclick="sendMessage('');">Send «Hello, World!»</button> -->
+<!--     <button id="with_webview_btn" onclick="sendMessage('', true);">
         Send «Hello, World!» with inline webview button
     </button>
     <button onclick="webviewExpand();">Expand Webview</button>
@@ -213,7 +213,14 @@
     <pre><code id="theme_data"></code></pre>
     <div class="hint">
         Theme params
+    </div> -->
+    <div id="start_screen" style="display: none;">
+        <button id="start_button" onclick="startGame();">Начать</button>
     </div>
+    <div id="game_screen" style="display: none;">
+        TODO
+    </div>
+    
 </section>
 <div class="viewport_border"></div>
 <div class="viewport_stable_border"></div>
@@ -223,6 +230,31 @@
 
     var initData = Telegram.WebApp.initData || '';
     var initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
+
+    function startGame() {
+        $('#start_screen').hide();
+        $('#game_screen').show();
+    }
+
+    function prepareGame() {
+        $.ajax('/app/prepareGame', {
+            type: 'POST',
+            data: {
+                init_data: initData,
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response.ok) {
+                    $('#start_screen').show();
+                } else {
+                    alert(response.err);
+                }
+            },
+            error: function (xhr) {
+                alert('Server error');
+            }
+        });
+    }
 
     function sendMessage(msg_id, with_webview) {
         if (!initDataUnsafe.query_id) {
@@ -312,31 +344,31 @@
         $('#theme_data').html(JSON.stringify(Telegram.WebApp.themeParams, null, 2));
     });
 
-    $('#main_btn').toggle(!!initDataUnsafe.query_id);
-    $('#with_webview_btn').toggle(!!initDataUnsafe.query_id && !initDataUnsafe.receiver);
-    // $('#data_btn').toggle(!initDataUnsafe.query_id || !initDataUnsafe.receiver);
-    $('#webview_data').html(JSON.stringify(initDataUnsafe, null, 2));
-    $('#theme_data').html(JSON.stringify(Telegram.WebApp.themeParams, null, 2));
-    $('#regular_link').attr('href', $('#regular_link').attr('href') + location.hash);
-    $('#text_field').focus();
-    if (initDataUnsafe.query_id && initData) {
-        $('#webview_data_status').show();
-        $.ajax('/demo/checkData', {
-            type: 'POST',
-            data: {init_data: initData},
-            dataType: 'json',
-            success: function (result) {
-                if (result.ok) {
-                    $('#webview_data_status').html('Hash is correct').addClass('ok');
-                } else {
-                    $('#webview_data_status').html(result.error).addClass('err');
-                }
-            },
-            error: function (xhr) {
-                $('#webview_data_status').html('Server error').addClass('err');
-            }
-        });
-    }
+    // $('#main_btn').toggle(!!initDataUnsafe.query_id);
+    // $('#with_webview_btn').toggle(!!initDataUnsafe.query_id && !initDataUnsafe.receiver);
+    // // $('#data_btn').toggle(!initDataUnsafe.query_id || !initDataUnsafe.receiver);
+    // $('#webview_data').html(JSON.stringify(initDataUnsafe, null, 2));
+    // $('#theme_data').html(JSON.stringify(Telegram.WebApp.themeParams, null, 2));
+    // $('#regular_link').attr('href', $('#regular_link').attr('href') + location.hash);
+    // $('#text_field').focus();
+    // if (initDataUnsafe.query_id && initData) {
+    //     $('#webview_data_status').show();
+    //     $.ajax('/demo/checkData', {
+    //         type: 'POST',
+    //         data: {init_data: initData},
+    //         dataType: 'json',
+    //         success: function (result) {
+    //             if (result.ok) {
+    //                 $('#webview_data_status').html('Hash is correct').addClass('ok');
+    //             } else {
+    //                 $('#webview_data_status').html(result.error).addClass('err');
+    //             }
+    //         },
+    //         error: function (xhr) {
+    //             $('#webview_data_status').html('Server error').addClass('err');
+    //         }
+    //     });
+    // }
     $('body').css('visibility', '');
     Telegram.WebApp.MainButton
         .setText('CLOSE WEBVIEW')
@@ -369,6 +401,7 @@
     Telegram.WebApp.onEvent('viewportChanged', setViewportData);
     setViewportData();
 
+    $(document).ready(prepareGame);
 
 </script>
 </body>
