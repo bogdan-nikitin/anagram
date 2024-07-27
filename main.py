@@ -24,18 +24,15 @@ PYTHONANYWHERE = False
 
 async def create_tables(conn: asyncpg.Connection):
     await conn.execute('''
-    DROP TABLE IF EXISTS moves;
     DROP TABLE IF EXISTS games;
     CREATE TABLE IF NOT EXISTS games(
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         public_id uuid DEFAULT gen_random_uuid(),
-        anagram_num smallint
-    );
-    CREATE TABLE IF NOT EXISTS moves(
-        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-        game_id bigint REFERENCES games(id),
-        user_id bigint NOT NULL,
-        answer_mask bigint NOT NULL
+        anagram_num smallint,
+        sender_id bigint NOT NULL,
+        invitee_id bigint,
+        sender_move_mask bigint,
+        invitee_move_mask bigint
     );
     ''')
 
