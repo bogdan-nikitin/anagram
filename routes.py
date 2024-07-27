@@ -36,9 +36,9 @@ Auth = Annotated[WebAppInitData, Depends(auth)]
 router = APIRouter()
 
 
-@router.get("/app")
+@router.get("/app")  # TODO make static page
 async def app_handler():
-    return FileResponse(Path(__file__).parent.resolve() / "demo.html")
+    return FileResponse(Path(__file__).parent.resolve() / "app.html")
 
 
 # @router.post('/app/prepareGame')

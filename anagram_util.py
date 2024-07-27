@@ -3,6 +3,8 @@ import bitstring
 import huffman
 from anargram import *
 import pickle
+from word_util import word_filter
+from opencorpora_parse import get_opencorpora_words
 
 
 ANAGRAM_FILE = 'anagrams.pickle'
@@ -37,11 +39,7 @@ class Anagrams:
 def get_words():
     response = requests.get(RUSSIAN_WORDS_URL)
     text = response.content.decode('utf-8')
-
-    words = set(filter(
-        lambda word: len(word) <= LENGTH and
-                     all(c in CYRILLIC_LOWER_LETTERS for c in word),
-        text.split('\n')))
+    words = set(filter(word_filter, text.split('\n')))
     return words
 
 
@@ -86,8 +84,14 @@ def get_mini_anagrams():
 
 
 if __name__ == '__main__':
+    anagrams = get_anagrams(get_opencorpora_words())
+    for (k, v) in sorted(
+            map(lambda pair: (pair[0], len(pair[1])), anagrams.items()),
+            key=lambda pair: pair[1], reverse=True)[:20]:
+        print(k, v)
     # print(len(get_filtered_anagrams()))
-    print(Anagrams.read(MINI_ANAGRAM_FILE).ordered)
+    # print(len(get_words()))
+    # print(Anagrams.read(MINI_ANAGRAM_FILE).ordered)
     # Anagrams(get_mini_anagrams()).write(MINI_ANAGRAM_FILE)
     # write_anagrams(get_mini_anagrams(), MINI_ANAGRAM_FILE)
     # anagrams = get_anagrams(get_words())

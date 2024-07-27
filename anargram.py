@@ -46,7 +46,7 @@ def get_used(anagrams):
 
 
 def calculate_histogram(anagrams):
-    hist: dict = {}
+    hist = {}
     for k, v in anagrams:
         hist[len(v)] = hist.get(len(v), 0) + 1
     return hist
