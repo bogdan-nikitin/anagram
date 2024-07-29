@@ -176,52 +176,29 @@
 </head>
 <body style="visibility: hidden;">
 <section>
-    <!-- <button id="main_btn" onclick="sendMessage('');">Send «Hello, World!»</button> -->
-<!--     <button id="with_webview_btn" onclick="sendMessage('', true);">
-        Send «Hello, World!» with inline webview button
-    </button>
-    <button onclick="webviewExpand();">Expand Webview</button>
-    <button onclick="toggleMainButton(this);">Hide Main Button</button>
-    <div id="btn_status" class="hint" style="display: none;">
-    </div>
-    <p>Test links:</p>
-    <ul>
-        <li><a id="regular_link" href="?nextpage=1">Regular link #1</a> (opens inside webview)</li>
-        <li><a href="https://telegram.org/" target="_blank">target="_blank" link</a> (opens outside
-            webview)
-        </li>
-        <li><a href="javascript:window.open('https://telegram.org/');">window.open() link</a>
-            (opens outside webview)
-        </li>
-        <li><a href="https://t.me/like">LikeBot t.me link</a> (opens inside Telegram app)</li>
-        <li><a href="tg://resolve?domain=vote">VoteBot tg:// link</a> (does not open)</li>
-    </ul>
-    <p>Test permissions:</p>
-    <ul>
-        <li><a href="javascript:;" onclick="return requestLocation(this);">Request Location</a>
-            <span></span></li>
-        <li><a href="javascript:;" onclick="return requestVideo(this);">Request Video</a>
-            <span></span></li>
-        <li><a href="javascript:;" onclick="return requestAudio(this);">Request Audio</a>
-            <span></span></li>
-    </ul>
-    <pre><code id="webview_data"></code></pre>
-    <div class="hint">
-        Data passed to webview.
-        <span id="webview_data_status" style="display: none;">Checking hash...</span>
-    </div>
-    <pre><code id="theme_data"></code></pre>
-    <div class="hint">
-        Theme params
-    </div> -->
     <div id="start_screen" style="display: none;">
         <button id="start_button" onclick="startGame();">Начать</button>
     </div>
     <div id="game_screen" style="display: none;">
-        <span id="anagram"></span>
+        <div>
+            Время:
+            <span id="remaining_time"></span>
+        </div>
+        <div>
+            Счёт:
+            <span id="score">0</span>
+        </div>
+        <div>
+            <span id="anagram"></span>
+        </div>
+        <div>
+            <input type="text" id="enter_input">
+            <button id="enter_button" onclick="enter();">Ввести</button>
+        </div>
+    </div>
+    <div id="result_screen" style="display: none;">
         TODO
     </div>
-    
 </section>
 <div class="viewport_border"></div>
 <div class="viewport_stable_border"></div>
@@ -231,6 +208,50 @@
 
     var initData = Telegram.WebApp.initData || '';
     var initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
+
+    var answers = null;
+    var score = 0;
+    var enteredWords = new Set();
+    const SECOND = 1000;
+    const MINUTE = 60 * SECOND;
+    const GAME_DURATION = MINUTE;
+    const TIMER_DELAY = 250;
+    var finishTime = null;
+
+    function enter() {
+        let enterInput = $('#enter_input');
+        let word = enterInput.val();
+        enterInput.val('');
+        if (answers.has(word) && !enteredWords.has(word)) {
+            score += 100;  // TODO
+            $('#score').text(score);
+            enteredWords.add(word);
+        }
+    }
+
+    function showResults() {
+        alert('TODO');
+        $('#result_screen').show();
+    }
+
+    function finishGame(timerId) {
+        clearInterval(timerId);
+        alert('End. TODO');
+        $('#game_screen').hide();
+    }
+
+    function formatTime(date) {
+        let minutes = date.getMinutes();
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        let seconds = date.getSeconds();
+        seconds = seconds < 10 ? '0' + seconds : seconds;
+        return `${minutes}:${seconds}`;
+    }
+
+    function showTime() {
+        let time = new Date(finishTime - new Date());
+        $('#remaining_time').text(formatTime(time));
+    }
 
     function startGame() {
         $('#start_screen').hide();
@@ -243,8 +264,11 @@
             success: function (response) {
                 if (response.ok) {
                     $('#game_screen').show();
-                    answers = response.answers;
+                    answers = new Set(response.answers);
                     $('#anagram').text(response.anagram);
+                    finishTime = new Date(new Date().getTime() + GAME_DURATION);
+                    showTime();
+                    setTimeout(finishGame, GAME_DURATION, setInterval(showTime, TIMER_DELAY));
                 } else {
                     alert(response.err);
                 }
@@ -320,45 +344,6 @@
         Telegram.WebApp.close();
     }
 
-    function requestLocation(el) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                $(el).next('span').html('(' + position.coords.latitude + ', ' + position.coords.longitude + ')').attr('class', 'ok');
-            });
-        } else {
-            $(el).next('span').html('Geolocation is not supported in this browser.').attr('class', 'err');
-        }
-        return false;
-    }
-
-    function requestVideo(el) {
-        if (navigator.mediaDevices) {
-            navigator.mediaDevices.getUserMedia({
-                audio: false,
-                video: true
-            }).then(function (stream) {
-                $(el).next('span').html('(Access granted)').attr('class', 'ok');
-            });
-        } else {
-            $(el).next('span').html('Media devices is not supported in this browser.').attr('class', 'err');
-        }
-        return false;
-    }
-
-    function requestAudio(el) {
-        if (navigator.mediaDevices) {
-            navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: false
-            }).then(function (stream) {
-                $(el).next('span').html('(Access granted)').attr('class', 'ok');
-            });
-        } else {
-            $(el).next('span').html('Media devices is not supported in this browser.').attr('class', 'err');
-        }
-        return false;
-    }
-
     Telegram.WebApp.onEvent('themeChanged', function () {
         $('#theme_data').html(JSON.stringify(Telegram.WebApp.themeParams, null, 2));
     });
@@ -420,7 +405,6 @@
     Telegram.WebApp.onEvent('viewportChanged', setViewportData);
     setViewportData();
 
-    var answers = [];
 
     $(document).ready(prepareGame);
 

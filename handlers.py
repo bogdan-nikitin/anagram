@@ -90,15 +90,3 @@ async def command_webview(message: Message, base_url: str):
             ]
         ),
     )
-
-
-@my_router.message(~F.message.via_bot)  # Echo to all messages except messages via bot
-async def echo_all(message: Message, base_url: str):
-    await message.answer(
-        "Test webview",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="Open", web_app=WebAppInfo(url=f"{base_url}/app"))]
-            ]
-        ),
-    )
