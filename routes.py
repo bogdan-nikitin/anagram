@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi import Form, Request, APIRouter
 from typing import Annotated
 
+from anagram_util import Anagrams
 
 from aiogram import Bot
 from aiogram.types import (
@@ -40,6 +41,44 @@ async def prepare_game_handler(web_app_init_data: Auth,
         # TODO
     return {"ok": True}
 
+
+@router.post('/app/startGame')
+async def start_game_handler(web_app_init_data: Auth,
+                             request: Request):
+    async with request.app.state.pool.acquire() as connection:
+        connection: asyncpg.Connection
+        async with connection.transaction():
+            public_id = web_app_init_data.start_param
+            game = await connection.fetchrow(
+                '''
+                SELECT 
+                sender_id, sender_move_mask, invitee_id, invitee_move_mask,
+                anagram_num FROM games WHERE public_id = $1 FOR UPDATE''',
+                public_id
+            )
+            user_id = web_app_init_data.user.id
+            if user_id == game['sender_id']:
+                mask_column = 'sender_move_mask'
+            elif game['invitee_id'] is None:
+                await connection.execute('''
+                UPDATE games
+                SET invitee_id = $2 WHERE public_id = $1
+                ''', public_id, user_id)
+                mask_column = 'invitee_move_mask'
+            else:
+                return JSONResponse(content={"ok": False, "err": "Not invitee"})
+            if game[mask_column] is not None:
+                return JSONResponse(
+                    content={"ok": False, "err": "Move is made"}
+                )
+            await connection.execute(f'''
+            UPDATE games
+            SET {mask_column} = $2 WHERE public_id = $1
+            ''', public_id, asyncpg.BitString.from_int(1, 1))
+    # return anagram and words
+    anagrams: Anagrams = request.app.state.anagrams
+    anagram = anagrams.ordered[game['anagram_num']]
+    return {"ok": True, "anagram": anagram, "answers": anagrams[anagram]}
 
 # @router.post("/demo/checkData")
 async def check_data_handler(

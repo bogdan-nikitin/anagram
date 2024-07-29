@@ -218,6 +218,7 @@
         <button id="start_button" onclick="startGame();">Начать</button>
     </div>
     <div id="game_screen" style="display: none;">
+        <span id="anagram"></span>
         TODO
     </div>
     
@@ -233,7 +234,25 @@
 
     function startGame() {
         $('#start_screen').hide();
-        $('#game_screen').show();
+        $.ajax('/app/startGame', {
+            type: 'POST',
+            data: {
+                init_data: initData,
+            },
+            dataType: 'json',
+            success: function (response) {
+                if (response.ok) {
+                    $('#game_screen').show();
+                    answers = response.answers;
+                    $('#anagram').text(response.anagram);
+                } else {
+                    alert(response.err);
+                }
+            },
+            error: function (xhr) {
+                alert('Server error');
+            }
+        });
     }
 
     function prepareGame() {
@@ -400,6 +419,8 @@
 
     Telegram.WebApp.onEvent('viewportChanged', setViewportData);
     setViewportData();
+
+    var answers = [];
 
     $(document).ready(prepareGame);
 

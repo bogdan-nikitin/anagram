@@ -59,6 +59,7 @@ dispatcher['anagrams'] = anagrams
 dispatcher.include_router(my_router)
 app = FastAPI(lifespan=lifespan)
 app.state.bot = bot
+app.state.anagrams = anagrams
 app.include_router(router)
 
 
