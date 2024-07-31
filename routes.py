@@ -15,7 +15,7 @@ from middlewares.auth import AuthDependency
 class Move(BaseModel):
     encoded_words: list[int]
 
-app_router = APIRouter(prefix="app")
+app_router = APIRouter(prefix="/app")
 
 
 GAME_STARTED = BitString.from_int(1, 1)
@@ -37,9 +37,18 @@ async def prepare_game_handler(web_app_init_data: AuthDependency,
             FROM games WHERE public_id = $1''',
             web_app_init_data.start_param
         )
-        user_id = web_app_init_data.user.id
-        # TODO
-    return {"ok": True}
+    user_id = web_app_init_data.user.id
+    action_ready = {'ok': True, 'action': 'ready'}
+    if user_id == game['sender_id']:
+        mask_column = 'sender_move_mask'
+    elif user_id == game['invitee_id']:
+        mask_column = 'invitee_move_mask'
+    else:
+        return action_ready
+    if game[mask_column] is None:
+        return action_ready
+    return {'ok': True, 'action': 'results'}
+
 
 
 @app_router.post('/startGame')

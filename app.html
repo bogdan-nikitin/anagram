@@ -196,7 +196,7 @@
             <button id="enter_button" onclick="enter();">Ввести</button>
         </div>
     </div>
-    <div id="result_screen" style="display: none;">
+    <div id="results_screen" style="display: none;">
         TODO
     </div>
 </section>
@@ -232,7 +232,7 @@
 
     function showResults() {
         alert('TODO');
-        $('#result_screen').show();
+        $('#results_screen').show();
     }
 
     function encodeWords(words) {
@@ -316,7 +316,11 @@
             dataType: 'json',
             success: function (response) {
                 if (response.ok) {
-                    $('#start_screen').show();
+                    if (response.action == 'results') {
+                        $('#results_screen').show();
+                    } else {
+                        $('#start_screen').show();
+                    }
                 } else {
                     alert(response.err);
                 }
