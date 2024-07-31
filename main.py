@@ -12,7 +12,7 @@ import asyncpg
 
 from fastapi import FastAPI, Request
 from handlers import my_router
-from routes import router
+from routes import app_router
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -60,7 +60,7 @@ dispatcher.include_router(my_router)
 app = FastAPI(lifespan=lifespan)
 app.state.bot = bot
 app.state.anagrams = anagrams
-app.include_router(router)
+app.include_router(app_router)
 
 
 @app.post("/webhook")

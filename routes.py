@@ -2,33 +2,35 @@ from pathlib import Path
 
 from asyncpg import Connection, BitString
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi import Form, Request, APIRouter
+from fastapi import Request, APIRouter
 
 from anagram_util import Anagrams
 
 from game import encode_move
 from pydantic import BaseModel
 
-from middlewares.auth import Auth
+from middlewares.auth import AuthDependency
 
 
+class Move(BaseModel):
+    encoded_words: list[int]
 
-router = APIRouter()
+app_router = APIRouter(prefix="app")
 
 
 GAME_STARTED = BitString.from_int(1, 1)
 
 
-@router.get("/app")  # TODO make static page
+@app_router.get("/")  # TODO make static page
 async def app_handler():
     return FileResponse(Path(__file__).parent.resolve() / "app.html")
 
 
-@router.post('/app/prepareGame')
-async def prepare_game_handler(web_app_init_data: Auth,
+@app_router.post('/prepareGame')
+async def prepare_game_handler(web_app_init_data: AuthDependency,
                                request: Request):
     async with request.app.state.pool.acquire() as connection:
-        connection: asyncpg.Connection
+        connection: Connection
         game = await connection.fetchrow(
             '''SELECT 
             sender_id, sender_move_mask, invitee_id, invitee_move_mask 
@@ -40,8 +42,8 @@ async def prepare_game_handler(web_app_init_data: Auth,
     return {"ok": True}
 
 
-@router.post('/app/startGame')
-async def start_game_handler(web_app_init_data: Auth,
+@app_router.post('/startGame')
+async def start_game_handler(web_app_init_data: AuthDependency,
                              request: Request):
     async with request.app.state.pool.acquire() as connection:
         connection: Connection
@@ -78,9 +80,10 @@ async def start_game_handler(web_app_init_data: Auth,
     return {"ok": True, "anagram": anagram, "answers": anagrams[anagram]}
 
 
-@router.post('/app/makeMove')
-async def make_move_handler(web_app_init_data: Auth,
-                            request: Request):
+@app_router.post('/makeMove')
+async def make_move_handler(web_app_init_data: AuthDependency,
+                            request: Request,
+                            move: Move):
     async with request.app.state.pool.acquire() as connection:
         connection: Connection
         async with connection.transaction():
@@ -108,13 +111,12 @@ async def make_move_handler(web_app_init_data: Auth,
                 return JSONResponse(
                     content={"ok": False, "err": "Not started or finished"}
                 )
-            # TODO
             anagrams: Anagrams = request.app.state.anagrams
             anagram = anagrams.ordered[game['anagram_num']]
             answers = anagrams[anagram]
             await connection.execute(f'''
             UPDATE games
             SET {mask_column} = $2 WHERE public_id = $1
-            ''', public_id, None)  # TODO
+            ''', public_id, encode_move(move.encoded_words, len(answers)))
     return {"ok": True}
 

@@ -209,6 +209,7 @@
     var initData = Telegram.WebApp.initData || '';
     var initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
 
+    var answerArray = null;
     var answers = null;
     var score = 0;
     var enteredWords = new Set();
@@ -234,10 +235,37 @@
         $('#result_screen').show();
     }
 
+    function encodeWords(words) {
+        alert('Encoding');
+        alert(answerArray);
+        let encoded = [];
+        words.forEach(word => encoded.push(answerArray.indexOf(word)));
+        return encoded;
+    }
+
     function finishGame(timerId) {
         clearInterval(timerId);
         alert('End. TODO');
         $('#game_screen').hide();
+        $.ajax('/app/makeMove', {
+            type: 'POST',
+            data: JSON.stringify({
+                auth: {init_data: initData},
+                move: {encoded_words: encodeWords(enteredWords)},
+            }),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            success: function (response) {
+                if (response.ok) {
+                    showResults();
+                } else {
+                    alert(response.err);
+                }
+            },
+            error: function (xhr) {
+                alert('Server error');
+            }
+        });
         showResults();
     }
 
@@ -258,13 +286,13 @@
         $('#start_screen').hide();
         $.ajax('/app/startGame', {
             type: 'POST',
-            data: {
-                init_data: initData,
-            },
+            data: JSON.stringify({init_data: initData}),
+            contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             success: function (response) {
                 if (response.ok) {
                     $('#game_screen').show();
+                    answerArray = response.answers;
                     answers = new Set(response.answers);
                     $('#anagram').text(response.anagram);
                     finishTime = new Date(new Date().getTime() + GAME_DURATION);
@@ -283,9 +311,8 @@
     function prepareGame() {
         $.ajax('/app/prepareGame', {
             type: 'POST',
-            data: {
-                init_data: initData,
-            },
+            data: JSON.stringify({init_data: initData}),
+            contentType: 'application/json; charset=utf-8',
             dataType: 'json',
             success: function (response) {
                 if (response.ok) {
@@ -295,43 +322,6 @@
                 }
             },
             error: function (xhr) {
-                alert('Server error');
-            }
-        });
-    }
-
-    function sendMessage(msg_id, with_webview) {
-        if (!initDataUnsafe.query_id) {
-            alert('WebViewQueryId not defined');
-            return;
-        }
-        $('button').prop('disabled', true);
-        $('#btn_status').text('Sending...').removeClass('ok err').show();
-        $.ajax('/demo/sendMessage', {
-            type: 'POST',
-            data: {
-                _auth: initData,
-                msg_id: msg_id || '',
-                with_webview: !initDataUnsafe.receiver && with_webview ? 1 : 0
-            },
-            dataType: 'json',
-            success: function (result) {
-                $('button').prop('disabled', false);
-                if (result.response) {
-                    if (result.response.ok) {
-                        $('#btn_status').html('Message sent successfully!').addClass('ok').show();
-                    } else {
-                        $('#btn_status').text(result.response.description).addClass('err').show();
-                        alert(result.response.description);
-                    }
-                } else {
-                    $('#btn_status').text('Unknown error').addClass('err').show();
-                    alert('Unknown error');
-                }
-            },
-            error: function (xhr) {
-                $('button').prop('disabled', false);
-                $('#btn_status').text('Server error').addClass('err').show();
                 alert('Server error');
             }
         });
