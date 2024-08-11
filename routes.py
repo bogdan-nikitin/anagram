@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from asyncpg import Connection, BitString
+from asyncpg import Connection
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi import Request, APIRouter
 
 from anagram_util import Anagrams
 
-from game import encode_move
+from game import encode_move, GAME_STARTED
 from pydantic import BaseModel
 
 from middlewares.auth import AuthDependency
@@ -16,9 +16,6 @@ class Move(BaseModel):
     encoded_words: list[int]
 
 app_router = APIRouter(prefix="/app")
-
-
-GAME_STARTED = BitString.from_int(1, 1)
 
 
 @app_router.get("/")  # TODO make static page
@@ -37,6 +34,8 @@ async def prepare_game_handler(web_app_init_data: AuthDependency,
             FROM games WHERE public_id = $1''',
             web_app_init_data.start_param
         )
+        if game is None:
+            return JSONResponse(content={"ok": False, "err": "No such game"})
     user_id = web_app_init_data.user.id
     action_ready = {'ok': True, 'action': 'ready'}
     if user_id == game['sender_id']:
@@ -65,6 +64,9 @@ async def start_game_handler(web_app_init_data: AuthDependency,
                 anagram_num FROM games WHERE public_id = $1 FOR UPDATE''',
                 public_id
             )
+            if game is None:
+                return JSONResponse(
+                    content={"ok": False, "err": "No such game"})
             user_id = web_app_init_data.user.id
             if user_id == game['sender_id']:
                 mask_column = 'sender_move_mask'
@@ -89,10 +91,10 @@ async def start_game_handler(web_app_init_data: AuthDependency,
     return {"ok": True, "anagram": anagram, "answers": anagrams[anagram]}
 
 
-@app_router.post('/makeMove')
-async def make_move_handler(web_app_init_data: AuthDependency,
-                            request: Request,
-                            move: Move):
+@app_router.post('/move')
+async def move_handler(web_app_init_data: AuthDependency,
+                       request: Request,
+                       move: Move):
     async with request.app.state.pool.acquire() as connection:
         connection: Connection
         async with connection.transaction():
@@ -104,6 +106,9 @@ async def make_move_handler(web_app_init_data: AuthDependency,
                 anagram_num FROM games WHERE public_id = $1 FOR UPDATE''',
                 public_id
             )
+            if game is None:
+                return JSONResponse(
+                    content={"ok": False, "err": "No such game"})
             user_id = web_app_init_data.user.id
             if user_id == game['sender_id']:
                 mask_column = 'sender_move_mask'
@@ -128,4 +133,38 @@ async def make_move_handler(web_app_init_data: AuthDependency,
             SET {mask_column} = $2 WHERE public_id = $1
             ''', public_id, encode_move(move.encoded_words, len(answers)))
     return {"ok": True}
+
+
+@app_router.get("/results")
+async def results_handler(web_app_init_data: AuthDependency,
+                          request: Request):
+    async with request.app.state.pool.acquire() as connection:
+        connection: Connection
+        public_id = web_app_init_data.start_param
+        game = await connection.fetchrow(
+            '''
+            SELECT 
+            sender_id, sender_move_mask, invitee_id, invitee_move_mask,
+            anagram_num FROM games WHERE public_id = $1''',
+            public_id
+        )
+        if game is None:
+            return JSONResponse(content={"ok": False, "err": "No such game"})
+    user_id = web_app_init_data.user.id
+    if user_id == game['sender_id']:
+        mask_column = 'sender_move_mask'
+    elif user_id == game['invitee_id']:
+        mask_column = 'invitee_move_mask'
+    else:
+        return JSONResponse(content={"ok": False,
+                                     "err": "No results for player"})
+    if game[mask_column] == GAME_STARTED or game[mask_column] is None:
+        return JSONResponse(
+            content={"ok": False, "err": "Not started or finished"}
+        )
+    anagrams: Anagrams = request.app.state.anagrams
+    anagram = anagrams.ordered[game['anagram_num']]
+    answers = anagrams[anagram]
+    return {'ok': True, }
+
 

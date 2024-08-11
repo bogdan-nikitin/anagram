@@ -231,13 +231,10 @@
     }
 
     function showResults() {
-        alert('TODO');
         $('#results_screen').show();
     }
 
     function encodeWords(words) {
-        alert('Encoding');
-        alert(answerArray);
         let encoded = [];
         words.forEach(word => encoded.push(answerArray.indexOf(word)));
         return encoded;
@@ -245,7 +242,6 @@
 
     function finishGame(timerId) {
         clearInterval(timerId);
-        alert('End. TODO');
         $('#game_screen').hide();
         $.ajax('/app/makeMove', {
             type: 'POST',
