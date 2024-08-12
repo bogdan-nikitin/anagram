@@ -46,4 +46,3 @@ def retrieve_words_from_move(answers: tuple[str],
 
 
 GAME_STARTED = BitString.from_int(1, 1)
-POINTS = [100, 400, 1200, 2000]

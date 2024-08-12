@@ -197,7 +197,6 @@
         </div>
     </div>
     <div id="results_screen" style="display: none;">
-        TODO
     </div>
 </section>
 <div class="viewport_border"></div>
@@ -217,18 +216,37 @@
     const MINUTE = 60 * SECOND;
     const GAME_DURATION = MINUTE;
     const TIMER_DELAY = 250;
+    const MIN_WORD_LENGTH = 3;  // TODO: Remove duplication
+    const POINTS = [100, 400, 1200, 2000];
     var finishTime = null;
-    var points = null;
 
     function enter() {
         let enterInput = $('#enter_input');
         let word = enterInput.val();
         enterInput.val('');
         if (answers.has(word) && !enteredWords.has(word)) {
-            score += points[word.length - 3];
+            score += wordPoints(word);
             $('#score').text(score);
             enteredWords.add(word);
         }
+    }
+
+    function wordPoints(word) {
+        return POINTS[word.length - MIN_WORD_LENGTH];
+    }
+
+    function getScore(move) {
+        return move.reduce((score, word) => score + wordPoints(word), 0);
+    }
+
+    function moveToString(move) {
+        if (move == null) {
+            return "Игрок не сделал ход";
+        }
+        return 'Итого ' + getScore(move) + '<br>' +
+                move
+                .map(word => word + ' ' + wordPoints(word))
+                .join('<br>');
     }
 
     function showResults() {
@@ -241,7 +259,10 @@
             dataType: 'json',
             success: function (response) {
                 if (response.ok) {
-                    alert(JSON.stringify(response));
+                    $('#results_screen').html('Вы<br>' +
+                    moveToString(response.player_move) +
+                    '<br>Противник<br>' + moveToString(response.opponent_move));
+                    $('#results_screen').show();
                 } else {
                     alert(response.err);
                 }
@@ -250,7 +271,6 @@
                 alert('Server error');
             }
         });
-        $('#results_screen').show();
     }
 
     function encodeWords(words) {
@@ -307,7 +327,6 @@
                 if (response.ok) {
                     $('#game_screen').show();
                     answerArray = response.answers;
-                    points = response.points;
                     answers = new Set(response.answers);
                     $('#anagram').text(response.anagram);
                     finishTime = new Date(new Date().getTime() + GAME_DURATION);
@@ -333,6 +352,7 @@
                 if (response.ok) {
                     if (response.action == 'results') {
                         $('#results_screen').show();
+                        showResults();
                     } else {
                         $('#start_screen').show();
                     }

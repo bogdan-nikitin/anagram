@@ -6,6 +6,7 @@ from iterator_util import consume
 CYRILLIC_LOWER_LETTERS = sorted('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
 LENGTH = 6
 MIN_COUNT = 20
+MIN_WORD_LENGTH = 3
 
 
 def get_key(word):
@@ -34,6 +35,7 @@ def get_anagrams(words):
         key = get_key(seq)
         anagrams[key] = tuple(itertools.chain.from_iterable(
             exact_anagrams[k] for k in sub_keys(key)
+            if len(k) >= MIN_WORD_LENGTH
         ))
     return anagrams
 

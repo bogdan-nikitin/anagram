@@ -6,7 +6,7 @@ from fastapi import Request, APIRouter
 
 from anagram_util import Anagrams
 
-from game import encode_move, GAME_STARTED, retrieve_words_from_move, POINTS
+from game import encode_move, GAME_STARTED, retrieve_words_from_move
 from pydantic import BaseModel
 
 from middlewares.auth import AuthDependency
@@ -89,7 +89,6 @@ async def start_game_handler(web_app_init_data: AuthDependency,
     anagrams: Anagrams = request.app.state.anagrams
     anagram = anagrams.ordered[game['anagram_num']]
     return {'ok': True,
-            'points': POINTS,
             'anagram': anagram,
             'answers': anagrams[anagram]}
 
@@ -171,7 +170,6 @@ async def results_handler(web_app_init_data: AuthDependency,
     anagram = anagrams.ordered[game['anagram_num']]
     answers = anagrams[anagram]
     return {'ok': True,
-            'points': POINTS,
             'player_move':
                 retrieve_words_from_move(answers, player_move_mask),
             'opponent_move':
