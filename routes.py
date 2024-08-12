@@ -6,7 +6,7 @@ from fastapi import Request, APIRouter
 
 from anagram_util import Anagrams
 
-from game import encode_move, GAME_STARTED
+from game import encode_move, GAME_STARTED, retrieve_words_from_move, POINTS
 from pydantic import BaseModel
 
 from middlewares.auth import AuthDependency
@@ -88,7 +88,10 @@ async def start_game_handler(web_app_init_data: AuthDependency,
             ''', public_id, GAME_STARTED)
     anagrams: Anagrams = request.app.state.anagrams
     anagram = anagrams.ordered[game['anagram_num']]
-    return {"ok": True, "anagram": anagram, "answers": anagrams[anagram]}
+    return {'ok': True,
+            'points': POINTS,
+            'anagram': anagram,
+            'answers': anagrams[anagram]}
 
 
 @app_router.post('/move')
@@ -135,7 +138,7 @@ async def move_handler(web_app_init_data: AuthDependency,
     return {"ok": True}
 
 
-@app_router.get("/results")
+@app_router.post("/results")
 async def results_handler(web_app_init_data: AuthDependency,
                           request: Request):
     async with request.app.state.pool.acquire() as connection:
@@ -152,19 +155,26 @@ async def results_handler(web_app_init_data: AuthDependency,
             return JSONResponse(content={"ok": False, "err": "No such game"})
     user_id = web_app_init_data.user.id
     if user_id == game['sender_id']:
-        mask_column = 'sender_move_mask'
+        player_move_mask = game['sender_move_mask']
+        opponent_move_mask = game['invitee_move_mask']
     elif user_id == game['invitee_id']:
-        mask_column = 'invitee_move_mask'
+        player_move_mask = game['invitee_move_mask']
+        opponent_move_mask = game['sender_move_mask']
     else:
         return JSONResponse(content={"ok": False,
                                      "err": "No results for player"})
-    if game[mask_column] == GAME_STARTED or game[mask_column] is None:
+    if player_move_mask == GAME_STARTED or player_move_mask is None:
         return JSONResponse(
             content={"ok": False, "err": "Not started or finished"}
         )
     anagrams: Anagrams = request.app.state.anagrams
     anagram = anagrams.ordered[game['anagram_num']]
     answers = anagrams[anagram]
-    return {'ok': True, }
+    return {'ok': True,
+            'points': POINTS,
+            'player_move':
+                retrieve_words_from_move(answers, player_move_mask),
+            'opponent_move':
+                retrieve_words_from_move(answers, opponent_move_mask)}
 
 

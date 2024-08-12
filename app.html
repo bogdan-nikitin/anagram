@@ -218,19 +218,38 @@
     const GAME_DURATION = MINUTE;
     const TIMER_DELAY = 250;
     var finishTime = null;
+    var points = null;
 
     function enter() {
         let enterInput = $('#enter_input');
         let word = enterInput.val();
         enterInput.val('');
         if (answers.has(word) && !enteredWords.has(word)) {
-            score += 100;  // TODO
+            score += points[word.length - 3];
             $('#score').text(score);
             enteredWords.add(word);
         }
     }
 
     function showResults() {
+        $.ajax('/app/results', {
+            type: 'POST',
+            data: JSON.stringify({
+                init_data: initData,
+            }),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            success: function (response) {
+                if (response.ok) {
+                    alert(JSON.stringify(response));
+                } else {
+                    alert(response.err);
+                }
+            },
+            error: function (xhr) {
+                alert('Server error');
+            }
+        });
         $('#results_screen').show();
     }
 
@@ -243,7 +262,7 @@
     function finishGame(timerId) {
         clearInterval(timerId);
         $('#game_screen').hide();
-        $.ajax('/app/makeMove', {
+        $.ajax('/app/move', {
             type: 'POST',
             data: JSON.stringify({
                 auth: {init_data: initData},
@@ -262,7 +281,6 @@
                 alert('Server error');
             }
         });
-        showResults();
     }
 
     function formatTime(date) {
@@ -289,6 +307,7 @@
                 if (response.ok) {
                     $('#game_screen').show();
                     answerArray = response.answers;
+                    points = response.points;
                     answers = new Set(response.answers);
                     $('#anagram').text(response.anagram);
                     finishTime = new Date(new Date().getTime() + GAME_DURATION);
