@@ -46,3 +46,4 @@ def retrieve_words_from_move(answers: tuple[str],
 
 
 GAME_STARTED = BitString.from_int(1, 1)
+EMPTY_MOVE = BitString.from_int(0, 1)

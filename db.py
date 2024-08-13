@@ -2,8 +2,8 @@ import asyncpg
 
 
 async def create_tables(conn: asyncpg.Connection):
+    # DROP TABLE IF EXISTS games;
     await conn.execute('''
-    DROP TABLE IF EXISTS games;
     CREATE TABLE IF NOT EXISTS games(
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         public_id uuid DEFAULT gen_random_uuid(),

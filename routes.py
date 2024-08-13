@@ -6,7 +6,7 @@ from fastapi import Request, APIRouter
 
 from anagram_util import Anagrams
 
-from game import encode_move, GAME_STARTED, retrieve_words_from_move
+from game import encode_move, GAME_STARTED, retrieve_words_from_move, EMPTY_MOVE
 from pydantic import BaseModel
 
 from middlewares.auth import AuthDependency
@@ -28,24 +28,30 @@ async def prepare_game_handler(web_app_init_data: AuthDependency,
                                request: Request):
     async with request.app.state.pool.acquire() as connection:
         connection: Connection
+        public_id = web_app_init_data.start_param
         game = await connection.fetchrow(
             '''SELECT 
             sender_id, sender_move_mask, invitee_id, invitee_move_mask 
             FROM games WHERE public_id = $1''',
-            web_app_init_data.start_param
+            public_id
         )
         if game is None:
             return JSONResponse(content={"ok": False, "err": "No such game"})
-    user_id = web_app_init_data.user.id
-    action_ready = {'ok': True, 'action': 'ready'}
-    if user_id == game['sender_id']:
-        mask_column = 'sender_move_mask'
-    elif user_id == game['invitee_id']:
-        mask_column = 'invitee_move_mask'
-    else:
-        return action_ready
-    if game[mask_column] is None:
-        return action_ready
+        user_id = web_app_init_data.user.id
+        action_ready = {'ok': True, 'action': 'ready'}
+        if user_id == game['sender_id']:
+            mask_column = 'sender_move_mask'
+        elif user_id == game['invitee_id']:
+            mask_column = 'invitee_move_mask'
+        else:
+            return action_ready
+        if game[mask_column] is None:
+            return action_ready
+        if game[mask_column] == GAME_STARTED:
+            await connection.execute(f'''
+            UPDATE games
+            SET {mask_column} = $2 WHERE public_id = $1
+            ''', public_id, EMPTY_MOVE)
     return {'ok': True, 'action': 'results'}
 
 
