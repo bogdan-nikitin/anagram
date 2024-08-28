@@ -172,10 +172,24 @@
         .viewport_stable_border:after {
             border-color: green;
         }
+
+        .game-button {
+            width: 15%;
+            aspect-ratio: 1 / 1;
+            position: absolute;
+            padding: 0;
+        }
+
+        .game-button-placeholder {
+            background-color: var(--tg-theme-secondary-bg-color);
+        }
     </style>
 </head>
 <body style="visibility: hidden;">
 <section>
+    <div id="test">
+        <button id="A" class="game-button game-button-placeholder" style="top: 20%; left: calc(10% / 7 * 1 + 15% * 0);">A</button>
+    </div>
     <div id="start_screen" style="display: none;">
         <button id="start_button" onclick="startGame();">Начать</button>
     </div>
@@ -436,7 +450,7 @@
     setViewportData();
 
 
-    $(document).ready(prepareGame);
+    // $(document).ready(prepareGame);
 
 </script>
 </body>
